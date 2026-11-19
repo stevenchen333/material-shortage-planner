@@ -1,0 +1,121 @@
+{
+  "days": [
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Next Mon",
+    "Next Tue"
+  ],
+  "capacity": 2,
+  "opening": {
+    "PB-6109": 12,
+    "FR-R92R-44": 4,
+    "FR-R92R-48": 3,
+    "FR-R92R-62": 0
+  },
+  "receipts": [
+    {
+      "part": "FR-R92R-62",
+      "qty": 2,
+      "day": 3
+    }
+  ],
+  "shipment": {
+    "part": "PB-6109",
+    "qty": 24,
+    "promised": 2,
+    "rush": 2,
+    "regular_days": [
+      2,
+      3,
+      4
+    ]
+  },
+  "models": {
+    "749": {
+      "size": 62,
+      "frame": "FR-R92R-62",
+      "frames": 1,
+      "bolts": 4
+    },
+    "750": {
+      "size": 44,
+      "frame": "FR-R92R-44",
+      "frames": 1,
+      "bolts": 4
+    },
+    "751": {
+      "size": 48,
+      "frame": "FR-R92R-48",
+      "frames": 1,
+      "bolts": 4
+    }
+  },
+  "orders": [
+    {
+      "id": 43716,
+      "model": "750",
+      "qty": 1,
+      "due": 0,
+      "late_fee": 45
+    },
+    {
+      "id": 43718,
+      "model": "750",
+      "qty": 1,
+      "due": 1,
+      "late_fee": 30
+    },
+    {
+      "id": 43719,
+      "model": "751",
+      "qty": 1,
+      "due": 1,
+      "late_fee": 25
+    },
+    {
+      "id": 43769,
+      "model": "751",
+      "qty": 1,
+      "due": 2,
+      "late_fee": 90
+    },
+    {
+      "id": 43798,
+      "model": "749",
+      "qty": 1,
+      "due": 1,
+      "late_fee": 95
+    },
+    {
+      "id": 43800,
+      "model": "750",
+      "qty": 1,
+      "due": 2,
+      "late_fee": 100
+    },
+    {
+      "id": 43801,
+      "model": "750",
+      "qty": 1,
+      "due": 3,
+      "late_fee": 35
+    },
+    {
+      "id": 43802,
+      "model": "751",
+      "qty": 1,
+      "due": 3,
+      "late_fee": 65
+    },
+    {
+      "id": 44061,
+      "model": "749",
+      "qty": 1,
+      "due": 4,
+      "late_fee": 60
+    }
+  ]
+}

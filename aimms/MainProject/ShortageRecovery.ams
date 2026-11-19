@@ -1,0 +1,152 @@
+## ams_version=1.0
+
+Model ShortageRecovery {
+    Set Orders {
+        Index: o;
+        Definition: data { O43716, O43718, O43719, O43769, O43798, O43800, O43801, O43802, O44061 };
+    }
+    Set Workdays {
+        Index: d;
+        Definition: data { Mon, Tue, Wed, Thu, Fri, NextMon, NextTue };
+    }
+    Index t { Range: Workdays; }
+    Set Parts {
+        Index: p;
+        Definition: data { Bolt, Frame44, Frame48, Frame62 };
+    }
+    Set DeliveryScenarios {
+        Index: s;
+        Definition: data { Wednesday, Thursday, Friday };
+    }
+
+    Parameter BikeQty { IndexDomain: o; }
+    Parameter DueDay { IndexDomain: o; }
+    Parameter FeePerDay { IndexDomain: o; }
+    Parameter PublishedDay { IndexDomain: o; }
+    ElementParameter BikeFrame { IndexDomain: o; Range: Parts; }
+    Parameter OpeningStock { IndexDomain: p; }
+    Parameter DailyCapacity;
+    Parameter BoltsPerBike;
+    Parameter ShipmentSize;
+    Parameter FrameReceiptQty;
+    Parameter FrameReceiptDay;
+    Parameter ArrivalDay { IndexDomain: s; }
+    Parameter ActiveArrival;
+    Parameter RushQuote { InitialData: 350; }
+    ElementParameter RegularDelivery {
+        Range: DeliveryScenarios;
+        InitialData: 'Thursday';
+    }
+
+    Parameter DayNumber {
+        IndexDomain: d;
+        Definition: Ord(d) - 1;
+    }
+    Parameter PartsNeeded {
+        IndexDomain: (o,p);
+        Definition: {
+            BikeQty(o) * (if p = 'Bolt' then BoltsPerBike
+                          elseif p = BikeFrame(o) then 1 else 0 endif)
+        }
+    }
+    Parameter Available {
+        IndexDomain: (p,d);
+        Definition: {
+            OpeningStock(p)
+            + (if p = 'Bolt' and DayNumber(d) >= ActiveArrival then ShipmentSize else 0 endif)
+            + (if p = 'Frame62' and DayNumber(d) >= FrameReceiptDay then FrameReceiptQty else 0 endif)
+        }
+    }
+    Parameter ChangeWeight {
+        Definition: 1 + Card(Orders) * Card(Workdays);
+    }
+    Parameter DollarWeight {
+        Definition: (Card(Orders) + 1) * ChangeWeight;
+    }
+
+    Variable Build { IndexDomain: (o,d); Range: binary; }
+    Constraint OneBuild {
+        IndexDomain: o;
+        Definition: Sum(d, Build(o,d)) = 1;
+    }
+    Constraint FixedMonday {
+        IndexDomain: o;
+        Definition: Build(o,'Mon') = (if PublishedDay(o) = 0 then 1 else 0 endif);
+    }
+    Constraint LineCapacity {
+        IndexDomain: d;
+        Definition: Sum(o, BikeQty(o) * Build(o,d)) <= DailyCapacity;
+    }
+    Constraint MaterialBalance {
+        IndexDomain: (p,d);
+        Definition: {
+            Sum((o,t) | DayNumber(t) <= DayNumber(d), PartsNeeded(o,p) * Build(o,t)) <= Available(p,d)
+        }
+    }
+    Variable PlanScore {
+        Definition: {
+            Sum((o,d), Build(o,d) * (
+                DollarWeight * FeePerDay(o) * Max(0, DayNumber(d) - DueDay(o))
+                + ChangeWeight * (if DayNumber(d) <> PublishedDay(o) then 1 else 0 endif)
+                + DayNumber(d)))
+        }
+    }
+    MathematicalProgram RecoveryPlan {
+        Objective: PlanScore;
+        Direction: minimize;
+        Constraints: AllConstraints;
+        Variables: AllVariables;
+        Type: MIP;
+    }
+
+    Parameter ReleaseDay { IndexDomain: (s,o); }
+    Parameter LateFees { IndexDomain: s; }
+    Parameter BreakEvenFee;
+    ElementParameter SelectedDelivery { Range: DeliveryScenarios; }
+    Parameter TotalCost;
+
+    Procedure MainInitialization {
+        Body: {
+            read from file "case.dat";
+        }
+    }
+    Procedure MainExecution {
+        Body: {
+            if RushQuote < 0 then
+                raise error "The rush quote must be zero or greater.";
+            endif;
+            for s do
+                ActiveArrival := ArrivalDay(s);
+                solve RecoveryPlan where
+                    MIP_Relative_Optimality_Tolerance := 0,
+                    MIP_Absolute_Optimality_Tolerance := 0;
+                if RecoveryPlan.ProgramStatus <> 'Optimal' then
+                    raise error "The release schedule could not be solved to optimality.";
+                endif;
+                ReleaseDay(s,o) := round(Sum(d, DayNumber(d) * Build(o,d)));
+                LateFees(s) := Sum(o, FeePerDay(o) * Max(0, ReleaseDay(s,o) - DueDay(o)));
+            endfor;
+            BreakEvenFee := LateFees(RegularDelivery) - LateFees('Wednesday');
+            SelectedDelivery := RegularDelivery;
+            TotalCost := LateFees(RegularDelivery);
+            if RushQuote < BreakEvenFee then
+                SelectedDelivery := 'Wednesday';
+                TotalCost := LateFees('Wednesday') + RushQuote;
+            endif;
+            display LateFees, BreakEvenFee, SelectedDelivery, TotalCost, ReleaseDay;
+        }
+    }
+    Procedure CheckSample {
+        Body: {
+            MainExecution;
+            if LateFees('Wednesday') <> 225 or LateFees('Thursday') <> 515 or LateFees('Friday') <> 885 then
+                raise error "The sample costs differ from the reference solution.";
+            endif;
+        }
+    }
+    Procedure MainTermination {
+        Body: {
+            return 1;
+        }
+    }
+}

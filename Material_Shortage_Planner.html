@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Material shortage planner · Road-150</title>
+<style>
+:root {
+  color-scheme: light;
+  --paper: #f6f5ef; --ink: #20322d; --muted: #535f58; --line: #cccec3;
+  --green: #194b3c; --white: #fffef9; --accent: #ceec9f; --rust: #86452e;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.wrap { width: min(1080px, calc(100% - 64px)); margin-inline: auto; }
+header { border-bottom: 1px solid var(--line); }
+.mast { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 61px; font-size: .86rem; }
+.identity { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.mark { display: inline-grid; grid-template-columns: repeat(3, 4px); gap: 2px; align-items: end; height: 17px; }
+.mark i { background: var(--green); height: 15px; }
+.mark i:nth-child(1) { height: 7px; } .mark i:nth-child(2) { height: 11px; }
+.context, .note { color: var(--muted); }
+.intro { padding: 39px 0 26px; }
+h1, h2, h3, p { margin: 0; }
+h1, .decision h2 { font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif; font-weight: 500; letter-spacing: -.04em; }
+h1 { font-size: clamp(2.4rem, 5vw, 3.7rem); line-height: 1.05; }
+.intro p { margin-top: 12px; max-width: 720px; color: var(--muted); }
+.decision-grid { display: grid; grid-template-columns: minmax(230px, .78fr) minmax(0, 1.7fr); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.controls, .decision { padding: 23px 27px; }
+.controls { background: var(--white); }
+.controls h2, .section-head h2 { font-weight: 650; font-size: 1.18rem; letter-spacing: -.025em; }
+.controls label { display: block; font-size: .81rem; font-weight: 650; margin: 14px 0 5px; }
+input, select { font: inherit; width: 100%; min-height: 37px; border: 1px solid #a6ada2; border-radius: 5px; background: white; color: var(--ink); padding: 4px 10px; }
+input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible, a:focus-visible { outline: 3px solid #be772d; outline-offset: 2px; }
+.error { font-size: .82rem; color: var(--rust); }
+.decision { background: var(--green); color: var(--white); display: flex; flex-direction: column; justify-content: center; }
+.decision .label { font: 600 .8rem/1.4 ui-monospace, Menlo, monospace; color: var(--accent); }
+.decision h2 { font-size: clamp(1.8rem, 3.8vw, 2.7rem); line-height: 1.08; margin: 10px 0; }
+.decision p { max-width: 650px; color: #eff3e8; }
+.decision .next { border-top: 1px solid #5d7f70; margin-top: 15px; padding-top: 11px; font-size: .9rem; }
+section { margin-bottom: 28px; }
+.section-head { display: flex; gap: 15px; align-items: baseline; justify-content: space-between; margin-bottom: 9px; }
+.note { font-size: .86rem; }
+.table-wrap { overflow-x: auto; border-top: 1px solid var(--line); }
+table { border-collapse: collapse; width: 100%; text-align: left; font-size: .91rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px 11px; border-bottom: 1px solid #dbded3; }
+th { font-size: .77rem; color: var(--muted); font-weight: 650; }
+td, th { white-space: nowrap; }
+th:first-child, td:first-child { padding-left: 3px; }
+.costs tbody tr { background: var(--white); }
+.costs :is(th,td):first-child { padding-left: 12px; }
+.money { text-align: right; }
+.emphasis { font-weight: 700; color: var(--green); }
+.readout { padding: 9px 2px 0; color: var(--muted); font-size: .88rem; }
+.tag { font-size: .79rem; color: var(--muted); }
+.tag.late { color: var(--rust); }
+details { margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+summary { cursor: pointer; font-weight: 650; width: fit-content; }
+details p { margin: 8px 0 0; font-size: .88rem; color: var(--muted); max-width: 870px; }
+a { color: var(--green); }
+footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 0 28px; color: var(--muted); font-size: .8rem; }
+button { background: transparent; color: var(--green); border: 1px solid var(--line); padding: 6px 12px; border-radius: 5px; font: inherit; cursor: pointer; }
+@media (max-width: 700px) {
+  .wrap { width: calc(100% - 32px); }
+  .intro { padding: 28px 0 22px; }
+  .decision-grid { grid-template-columns: 1fr; }
+  .controls, .decision { padding: 18px; }
+  .section-head { flex-wrap: wrap; gap: 2px 10px; }
+  .mast { font-size: .74rem; }
+}
+@media print {
+  body { background: white; font-size: 12px; }
+  .wrap { width: 100%; }
+  .intro { padding: 12px 0; }
+  h1 { font-size: 30px; }
+  .decision-grid { grid-template-columns: 1fr 2fr; }
+  .controls, .decision { padding: 9px 14px; }
+  .decision { background: white; color: var(--ink); border-left: 1px solid var(--line); }
+  .decision p, .decision .label { color: var(--ink); }
+  .decision h2 { font-size: 23px; }
+  .controls label { margin-top: 4px; }
+  input, select { min-height: 20px; }
+  th, td { padding: 3px 5px; } table { font-size: 10px; }
+  section { margin-bottom: 14px; break-inside: avoid; } button { display: none; }
+  .table-wrap { overflow: visible; } details { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<header><div class="wrap mast">
+  <div class="identity"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>Road-150 assembly</div>
+  <span class="context">Tuesday morning · before the shift</span>
+</div></header>
+<main class="wrap">
+<div class="intro">
+  <h1>Material shortage planner</h1>
+  <p>The line has four seat bolts left, enough for one bike. The supplier can still deliver on Wednesday for a fee. Which order gets the last kit, and is the rush worth paying for?</p>
+</div>
+<noscript>
+<style>.decision-grid, .decision-grid ~ section {display:none}</style>
+<section><h2>Thursday delivery at a $350 rush quote</h2><p>Keep Thursday's delivery. Moving the bolts forward avoids $290 in late fees. The supplier is asking $350.</p>
+<p class="note">Open the report in a browser with JavaScript enabled to try other offers.</p></section></noscript>
+<section class="decision-grid" aria-label="Supplier decision">
+  <div class="controls">
+    <h2>Supplier offer</h2>
+    <label for="arrival">Regular delivery</label>
+    <select id="arrival"></select>
+    <label for="quote">Fee for Wednesday delivery (USD)</label>
+    <input id="quote" type="number" value="350" min="0" max="1000000" step="0.01" inputmode="decimal">
+    <span id="error" class="error" role="alert"></span>
+  </div>
+  <div class="decision" aria-live="polite">
+    <span class="label">Buying decision</span>
+    <h2 id="decision-title"></h2>
+    <p id="decision-detail"></p>
+    <p class="next" id="next-step"></p>
+  </div>
+</section>
+<section>
+  <div class="section-head"><h2>Cost and service</h2><span class="note">Same stock, capacity and supplier offer</span></div>
+  <div class="table-wrap"><table class="costs">
+    <thead><tr><th>Release policy</th><th>On time</th><th>Dates changed¹</th><th class="money">Late fees</th><th class="money">Rush fee</th><th class="money">Total</th></tr></thead>
+    <tbody id="comparison"></tbody>
+  </table></div>
+  <p id="tradeoff" class="readout"></p>
+  <p id="alternative" class="note"></p>
+</section>
+<section>
+  <div class="section-head"><h2>Release schedule</h2><span class="note">One bike per order · sorted by recovery date</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Order</th><th>Frame</th><th>Due</th><th>Monday plan¹</th><th>Recovery plan</th><th>Order status</th><th class="money">Fee / day</th></tr></thead>
+    <tbody id="schedule"></tbody>
+  </table></div>
+  <p class="readout">¹ Monday’s published release dates are the reference. Both Monday builds are complete.</p>
+</section>
+<details id="basis">
+  <summary>Data and planning assumptions</summary>
+  <p>Order numbers, bike sizes, quantities and component usage come from the public AdventureWorks sample. The nine orders are grouped into one illustrative week. The stock counts, delivery dates, rush quote, capacity and late fees are scenario inputs.</p>
+  <p>A Road-150 uses one seat assembly. Four pinch bolts (PB-6109) go into that assembly. Monday opens with 12 bolts, four 44 cm frames and three 48 cm frames. Two 62 cm frames arrive on Thursday. The one inbound shipment contains 24 bolts. All other parts are ready.</p>
+  <p>The line builds up to two bikes per workday. Deliveries arrive before the shift and each bike ships on the day it is built. Early delivery is allowed. An order incurs its stated fee for each workday late. Monday’s releases are fixed. The due-date rule releases the earliest due order with a complete kit, breaking ties by order number.</p>
+  <p>Each policy takes whichever freight option gives it the lower total cost. The recovery model first minimizes late fees for each arrival, then preserves as many published dates as possible, then favors earlier releases. At an equal total cost, both policies keep the regular delivery.</p>
+  <p>Sources · <a href="https://learn.microsoft.com/en-us/sql/samples/adventureworks-install-configure">Microsoft AdventureWorks</a> · <a href="https://www.w3resource.com/sql-exercises/adventureworks/production/billofmaterials.php">Bill of materials</a> · <a href="https://www.w3resource.com/sql-exercises/adventureworks/sales/salesorderdetail.php">Sales order lines</a></p>
+</details>
+<footer><span>AdventureWorks sample · scenario costs in USD</span><button type="button" id="print">Print report</button></footer>
+</main>
+<script id="case-data" type="application/json">{"case": {"days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Next Mon", "Next Tue"], "capacity": 2, "opening": {"PB-6109": 12, "FR-R92R-44": 4, "FR-R92R-48": 3, "FR-R92R-62": 0}, "receipts": [{"part": "FR-R92R-62", "qty": 2, "day": 3}], "shipment": {"part": "PB-6109", "qty": 24, "promised": 2, "rush": 2, "regular_days": [2, 3, 4]}, "models": {"749": {"size": 62, "frame": "FR-R92R-62", "frames": 1, "bolts": 4}, "750": {"size": 44, "frame": "FR-R92R-44", "frames": 1, "bolts": 4}, "751": {"size": 48, "frame": "FR-R92R-48", "frames": 1, "bolts": 4}}, "orders": [{"id": 43716, "model": "750", "qty": 1, "due": 0, "late_fee": 45}, {"id": 43718, "model": "750", "qty": 1, "due": 1, "late_fee": 30}, {"id": 43719, "model": "751", "qty": 1, "due": 1, "late_fee": 25}, {"id": 43769, "model": "751", "qty": 1, "due": 2, "late_fee": 90}, {"id": 43798, "model": "749", "qty": 1, "due": 1, "late_fee": 95}, {"id": 43800, "model": "750", "qty": 1, "due": 2, "late_fee": 100}, {"id": 43801, "model": "750", "qty": 1, "due": 3, "late_fee": 35}, {"id": 43802, "model": "751", "qty": 1, "due": 3, "late_fee": 65}, {"id": 44061, "model": "749", "qty": 1, "due": 4, "late_fee": 60}]}, "orders": [{"id": 43716, "size": 44, "qty": 1, "due": 0, "late_fee": 45, "parts": {"PB-6109": 4, "FR-R92R-44": 1}}, {"id": 43718, "size": 44, "qty": 1, "due": 1, "late_fee": 30, "parts": {"PB-6109": 4, "FR-R92R-44": 1}}, {"id": 43719, "size": 48, "qty": 1, "due": 1, "late_fee": 25, "parts": {"PB-6109": 4, "FR-R92R-48": 1}}, {"id": 43798, "size": 62, "qty": 1, "due": 1, "late_fee": 95, "parts": {"PB-6109": 4, "FR-R92R-62": 1}}, {"id": 43769, "size": 48, "qty": 1, "due": 2, "late_fee": 90, "parts": {"PB-6109": 4, "FR-R92R-48": 1}}, {"id": 43800, "size": 44, "qty": 1, "due": 2, "late_fee": 100, "parts": {"PB-6109": 4, "FR-R92R-44": 1}}, {"id": 43801, "size": 44, "qty": 1, "due": 3, "late_fee": 35, "parts": {"PB-6109": 4, "FR-R92R-44": 1}}, {"id": 43802, "size": 48, "qty": 1, "due": 3, "late_fee": 65, "parts": {"PB-6109": 4, "FR-R92R-48": 1}}, {"id": 44061, "size": 62, "qty": 1, "due": 4, "late_fee": 60, "parts": {"PB-6109": 4, "FR-R92R-62": 1}}], "published": [0, 0, 1, 3, 2, 2, 3, 4, 4], "scenarios": {"2": {"rule": {"days": [0, 0, 1, 3, 2, 2, 3, 4, 4], "late": 255, "onTime": 7, "changed": 0}, "model": {"days": [0, 0, 1, 3, 2, 2, 4, 3, 4], "late": 225, "onTime": 7, "changed": 2}}, "3": {"rule": {"days": [0, 0, 1, 3, 3, 4, 4, 5, 5], "late": 705, "onTime": 3, "changed": 5}, "model": {"days": [0, 0, 5, 3, 3, 2, 5, 4, 4], "late": 515, "onTime": 4, "changed": 3}}, "4": {"rule": {"days": [0, 0, 1, 4, 4, 5, 5, 6, 6], "late": 1150, "onTime": 3, "changed": 6}, "model": {"days": [0, 0, 6, 4, 4, 2, 6, 5, 5], "late": 885, "onTime": 3, "changed": 6}}}}</script>
+<script>
+const data = JSON.parse(document.getElementById("case-data").textContent);
+const {orders, scenarios, published} = data;
+const days = data.case.days;
+const rush = data.case.shipment.rush;
+const fullDay = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "next Monday", "next Tuesday"];
+const get = id => document.getElementById(id);
+const dollars = new Intl.NumberFormat("en-US", {style: "currency", currency: "USD",
+  minimumFractionDigits: 0, maximumFractionDigits: 2});
+const money = value => dollars.format(value);
+
+function buy(policy, arrival, quote) {
+  const regular = scenarios[arrival][policy];
+  const early = scenarios[rush][policy];
+  const limit = regular.late - early.late;
+  const expedite = arrival > rush && quote < limit;
+  const plan = expedite ? early : regular;
+  const fee = expedite ? quote : 0;
+  return {plan, fee, limit, expedite, total: plan.late + fee};
+}
+
+function costRow(label, option) {
+  const {plan, fee, total} = option;
+  return `<tr><td>${label}</td><td>${plan.onTime} of ${orders.length}</td>
+    <td>${plan.changed}</td><td class="money">${money(plan.late)}</td>
+    <td class="money">${money(fee)}</td><td class="money emphasis">${money(total)}</td></tr>`;
+}
+
+function showSchedule(plan) {
+  const rows = orders.map((order, i) => ({order, day: plan.days[i], before: published[i]}));
+  rows.sort((a, b) => a.day - b.day || a.order.due - b.order.due || a.order.id - b.order.id);
+  get("schedule").innerHTML = rows.map(({order, day, before}) => {
+    const late = Math.max(0, day - order.due);
+    const status = day === 0 ? "Already released" : late ? `${late} workday${late === 1 ? "" : "s"} late` : "On time";
+    return `<tr><td>#${order.id}</td><td>${order.size} cm</td><td>${days[order.due]}</td>
+      <td>${days[before]}</td><td class="emphasis">${days[day]}</td>
+      <td class="tag ${late ? "late" : ""}">${status}</td><td class="money">${money(order.late_fee)}</td></tr>`;
+  }).join("");
+}
+
+function update() {
+  const field = get("quote");
+  const valid = field.value !== "" && field.validity.valid;
+  get("error").textContent = valid ? "" : "Enter a fee from $0 to $1,000,000, to the nearest cent.";
+  field.setAttribute("aria-invalid", String(!valid));
+  if (!valid) {
+    get("decision-title").textContent = "Check the rush fee";
+    ["decision-detail", "next-step", "tradeoff", "alternative", "comparison", "schedule"].forEach(id => get(id).replaceChildren());
+    return;
+  }
+  const arrival = Number(get("arrival").value);
+  const quote = field.valueAsNumber;
+  const model = buy("model", arrival, quote);
+  const rule = buy("rule", arrival, quote);
+  get("decision-title").textContent = model.expedite ? "Take the Wednesday delivery." : `Keep the ${fullDay[arrival]} delivery.`;
+  if (arrival === rush) {
+    get("decision-detail").textContent = "The regular shipment already arrives on Wednesday. Both policies use it at no extra cost.";
+  } else {
+    get("decision-detail").textContent = `The break-even rush fee is ${money(model.limit)}, the late fees avoided by moving the shipment forward. The supplier is asking ${money(quote)}.`;
+  }
+  const first = Math.min(...model.plan.days.filter(day => day > 0));
+  const next = orders[model.plan.days.indexOf(first)];
+  get("next-step").textContent = first === 1 ? `Release #${next.id} today using the last four bolts.` :
+    `Hold the last four bolts for #${next.id}, a ${next.size} cm bike scheduled for ${fullDay[first]}.`;
+  get("comparison").innerHTML = costRow("Earliest due, kit ready", rule) + costRow("Recovery plan", model);
+  const saved = Math.round((rule.total - model.total) * 100) / 100;
+  const delta = model.plan.onTime - rule.plan.onTime;
+  const costText = saved === 0 ? "The two policies cost the same." : `The recovery plan saves ${money(saved)}.`;
+  const serviceText = delta === 0 ? "Both ship the same number of orders on time." :
+    `It ships ${Math.abs(delta)} ${delta > 0 ? "more" : "fewer"} order${Math.abs(delta) === 1 ? "" : "s"} on time.`;
+  get("tradeoff").textContent = costText + " " + serviceText;
+  const other = model.expedite ? scenarios[arrival].model : scenarios[rush].model;
+  const otherTotal = other.late + (model.expedite ? 0 : quote);
+  const otherDay = model.expedite ? arrival : rush;
+  get("alternative").textContent = arrival === rush ? "" :
+    `The alternative recovery plan costs ${money(otherTotal)} with ${fullDay[otherDay]} delivery and ships ${other.onTime} of ${orders.length} orders on time.`;
+  showSchedule(model.plan);
+}
+
+for (const arrival of data.case.shipment.regular_days) {
+  get("arrival").add(new Option(fullDay[arrival], arrival));
+}
+get("arrival").value = "3";
+get("arrival").addEventListener("change", update);
+get("quote").addEventListener("input", update);
+get("print").addEventListener("click", () => window.print());
+update();
+</script>
+</body>
+</html>

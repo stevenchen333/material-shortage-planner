@@ -1,0 +1,34 @@
+! Workday zero is Monday. PublishedDay is the schedule issued before the delay.
+COMPOSITE TABLE
+    o        BikeQty   DueDay   FeePerDay   PublishedDay   BikeFrame
+    O43716   1         0        45          0              Frame44
+    O43718   1         1        30          0              Frame44
+    O43719   1         1        25          1              Frame48
+    O43798   1         1        95          3              Frame62
+    O43769   1         2        90          2              Frame48
+    O43800   1         2        100         2              Frame44
+    O43801   1         3        35          3              Frame44
+    O43802   1         3        65          4              Frame48
+    O44061   1         4        60          4              Frame62
+;
+
+COMPOSITE TABLE
+    p         OpeningStock
+    Bolt      12
+    Frame44   4
+    Frame48   3
+    Frame62   0
+;
+
+COMPOSITE TABLE
+    s           ArrivalDay
+    Wednesday   2
+    Thursday    3
+    Friday      4
+;
+
+DailyCapacity := 2;
+BoltsPerBike := 4;
+ShipmentSize := 24;
+FrameReceiptQty := 2;
+FrameReceiptDay := 3;
